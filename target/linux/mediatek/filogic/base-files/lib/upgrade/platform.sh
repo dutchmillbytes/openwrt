@@ -1,5 +1,16 @@
 REQUIRE_IMAGE_METADATA=1
 
+asus_initial_setup()
+{
+	# initialize UBI if it's running on initramfs
+	[ "$(rootfs_type)" = "tmpfs" ] || return 0
+
+	ubirmvol /dev/ubi0 -N rootfs
+	ubirmvol /dev/ubi0 -N rootfs_data
+	ubirmvol /dev/ubi0 -N jffs2
+	ubimkvol /dev/ubi0 -N jffs2 -s 0x3e000
+}
+
 xiaomi_initial_setup()
 {
 	# initialize UBI and setup uboot-env if it's running on initramfs
@@ -56,7 +67,9 @@ platform_do_upgrade() {
 		CI_ROOTPART="rootfs"
 		emmc_do_upgrade "$1"
 		;;
-	asus,tuf-ax4200)
+	asus,rt-ax59u|\
+	asus,tuf-ax4200|\
+	asus,tuf-ax6000)
 		CI_UBIPART="UBI_DEV"
 		CI_KERNPART="linux"
 		nand_do_upgrade "$1"
@@ -93,14 +106,17 @@ platform_do_upgrade() {
 			;;
 		esac
 		;;
-	cudy,wr3000-v1)
+	cudy,wr3000-v1|\
+	cudy,re3000-v1)
 		default_do_upgrade "$1"
 		;;
-	mercusys,mr90x-v1)
-		CI_UBIPART="ubi0"
-		nand_do_upgrade "$1"
+	glinet,gl-mt6000)
+		CI_KERNPART="kernel"
+		CI_ROOTPART="rootfs"
+		emmc_do_upgrade "$1"
 		;;
 	h3c,magic-nx30-pro|\
+	jcg,q30-pro|\
 	mediatek,mt7981-rfb|\
 	qihoo,360t7|\
 	tplink,tl-xdr4288|\
@@ -112,12 +128,26 @@ platform_do_upgrade() {
 		CI_KERNPART="fit"
 		nand_do_upgrade "$1"
 		;;
+	mercusys,mr90x-v1)
+		CI_UBIPART="ubi0"
+		nand_do_upgrade "$1"
+		;;
+	ubnt,unifi-6-plus)
+		CI_KERNPART="kernel0"
+		EMMC_ROOT_DEV="$(cmdline_get_var root)"
+		emmc_do_upgrade "$1"
+		;;
 	xiaomi,mi-router-wr30u-stock|\
 	xiaomi,redmi-router-ax6000-stock)
 		CI_KERN_UBIPART=ubi_kernel
 		CI_ROOT_UBIPART=ubi
 		nand_do_upgrade "$1"
 		;;
+        zyxel,ex5601-t0-ubootmod)
+		CI_KERNPART="fit"
+		CI_ROOTPART="ubi_rootfs"
+                nand_do_upgrade "$1"
+                ;;
 	*)
 		nand_do_upgrade "$1"
 		;;
@@ -160,6 +190,10 @@ platform_copy_config() {
 			;;
 		esac
 		;;
+	glinet,gl-mt6000|\
+	ubnt,unifi-6-plus)
+		emmc_copy_config
+		;;
 	esac
 }
 
@@ -167,6 +201,11 @@ platform_pre_upgrade() {
 	local board=$(board_name)
 
 	case "$board" in
+	asus,rt-ax59u|\
+	asus,tuf-ax4200|\
+	asus,tuf-ax6000)
+		asus_initial_setup
+		;;
 	xiaomi,mi-router-wr30u-stock|\
 	xiaomi,redmi-router-ax6000-stock)
 		xiaomi_initial_setup

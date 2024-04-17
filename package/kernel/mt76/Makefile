@@ -8,9 +8,9 @@ PKG_LICENSE_FILES:=
 
 PKG_SOURCE_URL:=https://github.com/openwrt/mt76
 PKG_SOURCE_PROTO:=git
-PKG_SOURCE_DATE:=2023-08-14
-PKG_SOURCE_VERSION:=b14c2351ddb8601c322576d84029e463d456caef
-PKG_MIRROR_HASH:=62b5e157ad525424b6857e77ed373e8d39d03af71b057f8b309d8b293d6eac5f
+PKG_SOURCE_DATE:=2023-09-11
+PKG_SOURCE_VERSION:=f1e1e67d97d1e9a8bb01b59ab20c45ebc985a958
+PKG_MIRROR_HASH:=41fde79de5bec3aaafdb64658475a1fa99bc483b8122e6aad9b2aa8aa8edfce6
 
 PKG_MAINTAINER:=Felix Fietkau <nbd@nbd.name>
 PKG_USE_NINJA:=0
@@ -260,6 +260,11 @@ endef
 define KernelPackage/mt7921-firmware
   $(KernelPackage/mt76-default)
   TITLE:=MediaTek MT7921 firmware
+endef
+
+define KernelPackage/mt7922-firmware
+  $(KernelPackage/mt76-default)
+  TITLE:=MediaTek MT7922 firmware
 endef
 
 define KernelPackage/mt792x-common
@@ -542,8 +547,6 @@ define KernelPackage/mt7986-firmware/install
 		$(PKG_BUILD_DIR)/firmware/mt7986_wm.bin \
 		$(PKG_BUILD_DIR)/firmware/mt7986_rom_patch_mt7975.bin \
 		$(PKG_BUILD_DIR)/firmware/mt7986_rom_patch.bin \
-		$(PKG_BUILD_DIR)/firmware/mt7986_eeprom_mt7975_dual.bin \
-		$(PKG_BUILD_DIR)/firmware/mt7986_eeprom_mt7976_dual.bin \
 		$(1)/lib/firmware/mediatek
 endef
 
@@ -552,6 +555,14 @@ define KernelPackage/mt7921-firmware/install
 	cp \
 		$(PKG_BUILD_DIR)/firmware/WIFI_MT7961_patch_mcu_1_2_hdr.bin \
 		$(PKG_BUILD_DIR)/firmware/WIFI_RAM_CODE_MT7961_1.bin \
+		$(1)/lib/firmware/mediatek
+endef
+
+define KernelPackage/mt7922-firmware/install
+	$(INSTALL_DIR) $(1)/lib/firmware/mediatek
+	cp \
+		$(PKG_BUILD_DIR)/firmware/WIFI_MT7922_patch_mcu_1_1_hdr.bin \
+		$(PKG_BUILD_DIR)/firmware/WIFI_RAM_CODE_MT7922_1.bin \
 		$(1)/lib/firmware/mediatek
 endef
 
@@ -588,6 +599,7 @@ $(eval $(call KernelPackage,mt7916-firmware))
 $(eval $(call KernelPackage,mt7981-firmware))
 $(eval $(call KernelPackage,mt7986-firmware))
 $(eval $(call KernelPackage,mt7921-firmware))
+$(eval $(call KernelPackage,mt7922-firmware))
 $(eval $(call KernelPackage,mt792x-common))
 $(eval $(call KernelPackage,mt792x-usb))
 $(eval $(call KernelPackage,mt7921-common))
