@@ -1,0 +1,17 @@
+Index: linux-6.6.86/drivers/mtd/spi-nor/gigadevice.c
+===================================================================
+--- linux-6.6.86.orig/drivers/mtd/spi-nor/gigadevice.c
++++ linux-6.6.86/drivers/mtd/spi-nor/gigadevice.c
+@@ -67,9 +67,10 @@ static const struct flash_info gigadevic
+ 		NO_SFDP_FLAGS(SECT_4K | SPI_NOR_DUAL_READ |
+ 			      SPI_NOR_QUAD_READ) },
+ 	{ "gd25q256", INFO(0xc84019, 0, 64 * 1024, 512)
+-		PARSE_SFDP
+ 		FLAGS(SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB | SPI_NOR_TB_SR_BIT6)
+-		FIXUP_FLAGS(SPI_NOR_4B_OPCODES)
++     		FIXUP_FLAGS(SPI_NOR_4B_OPCODES)
++		NO_SFDP_FLAGS(SECT_4K | SPI_NOR_DUAL_READ |
++                              SPI_NOR_QUAD_READ)
+ 		.fixups = &gd25q256_fixups },
+ 	{ "gd25q512", INFO(0xc84020, 0, 64 * 1024, 1024)
+ 		FLAGS(SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB)
