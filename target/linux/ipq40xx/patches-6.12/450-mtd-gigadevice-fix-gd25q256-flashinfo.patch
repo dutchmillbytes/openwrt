@@ -1,0 +1,10 @@
+--- a/drivers/mtd/spi-nor/gigadevice.c
++++ b/drivers/mtd/spi-nor/gigadevice.c
+@@ -70,6 +70,7 @@
+ 		.flags = SPI_NOR_HAS_LOCK | SPI_NOR_HAS_TB | SPI_NOR_TB_SR_BIT6,
+ 		.fixups = &gd25q256_fixups,
+ 		.fixup_flags = SPI_NOR_4B_OPCODES,
++		.no_sfdp_flags = SECT_4K | SPI_NOR_DUAL_READ | SPI_NOR_QUAD_READ,
+ 	}, {
+ 		.id = SNOR_ID(0xc8, 0x40, 0x20),
+ 		.name = "gd25q512",
