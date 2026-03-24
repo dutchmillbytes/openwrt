@@ -14,6 +14,7 @@ define Device/tplink_deco-m5-v1
 	DEVICE_MODEL := Deco-M5
 	DEVICE_VARIANT := v1
 	TPLINK_BOARD_ID := DECO-M5
+	SUPPORTED_DEVICES += tplink,deco-m5-v2
 	KERNEL_SIZE := 4096k
 	IMAGE_SIZE := 16640k
 endef
@@ -24,6 +25,7 @@ define Device/tplink_deco-m5-v2
 	DEVICE_MODEL := Deco-M5
 	DEVICE_VARIANT := v2
 	TPLINK_BOARD_ID := DECO-M5
+	SUPPORTED_DEVICES += tplink,deco-m5-v1
 	KERNEL_SIZE := 4096k
 	IMAGE_SIZE := 16640k
 endef
