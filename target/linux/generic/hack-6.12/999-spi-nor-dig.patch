@@ -1,0 +1,117 @@
+Subject: HACK: Maybe get some SFDP flashes working
+
+Try and hack the SFDP parsing path in order to potentially boot. This is a
+diagnostic patch, and is only meant to find errors in the static spi flash
+definitions.
+--- a/drivers/mtd/spi-nor/core.c
++++ b/drivers/mtd/spi-nor/core.c
+@@ -2875,10 +2875,13 @@ static int spi_nor_late_init_params(stru
+ static void spi_nor_sfdp_init_params_deprecated(struct spi_nor *nor)
+ {
+ 	struct spi_nor_flash_parameter sfdp_params;
++	int err = 0;
+ 
+ 	memcpy(&sfdp_params, nor->params, sizeof(sfdp_params));
+ 
+-	if (spi_nor_parse_sfdp(nor)) {
++	err = spi_nor_parse_sfdp(nor);
++	if (err) {
++		dev_warn(nor->dev, "failed to parse sfdp, using spi-nor defaults [err=%d,has_sfdp=%d]", err, (nor->sfdp != NULL));
+ 		memcpy(nor->params, &sfdp_params, sizeof(*nor->params));
+ 		nor->flags &= ~SNOR_F_4B_OPCODES;
+ 	}
+@@ -2899,11 +2902,14 @@ static void spi_nor_init_params_deprecat
+ 
+ 	spi_nor_manufacturer_init_params(nor);
+ 
+-	if (nor->info->no_sfdp_flags & (SPI_NOR_DUAL_READ |
+-					SPI_NOR_QUAD_READ |
+-					SPI_NOR_OCTAL_READ |
+-					SPI_NOR_OCTAL_DTR_READ))
+-		spi_nor_sfdp_init_params_deprecated(nor);
++	// if (nor->info->no_sfdp_flags & (SPI_NOR_DUAL_READ |
++	// 				SPI_NOR_QUAD_READ |
++	// 				SPI_NOR_OCTAL_READ |
++	// 				SPI_NOR_OCTAL_DTR_READ))
++	// 	spi_nor_sfdp_init_params_deprecated(nor);
++	// HACK: Always enable SFDP, we're assuming we're using SPI chips that are new
++	// enough to potentially have one.
++	spi_nor_sfdp_init_params_deprecated(nor);
+ }
+ 
+ /**
+--- a/drivers/mtd/spi-nor/sfdp.c
++++ b/drivers/mtd/spi-nor/sfdp.c
+@@ -1418,13 +1418,31 @@ int spi_nor_parse_sfdp(struct spi_nor *n
+ 
+ 	/* Get the SFDP header. */
+ 	err = spi_nor_read_sfdp_dma_unsafe(nor, 0, sizeof(header), &header);
+-	if (err < 0)
++	if (err < 0) {
++		dev_warn(dev, "failed to execute RDSFDP command (not supported?)\n");
+ 		return err;
++	}
++
++	if (true) {
++		// HACK: For deeper investigation, dump the raw header bytes
++#define PASTE (sizeof(header) + ((0x08 - (sizeof(header) & 0x07)) & 0x07))
++		u8 bytes[PASTE] = {};
++		memset(bytes, 0xCC, sizeof(bytes)/sizeof(bytes[0]));
++		memcpy(bytes, &header, sizeof(header));
++		const u8* ptr = (u8*)bytes;
++
++		dev_warn(dev, "raw SFDP header:\n");
++		for (int i = 0; i < PASTE; i += 0x08) {
++			dev_warn(dev, "%04x > %02x %02x %02x %02x %02x %02x %02x %02x\n", i, ptr[i+0], ptr[i+1], ptr[i+2], ptr[i+3], ptr[i+4], ptr[i+5], ptr[i+6], ptr[i+7]);
++		}
++	}
+ 
+ 	/* Check the SFDP header version. */
+ 	if (le32_to_cpu(header.signature) != SFDP_SIGNATURE ||
+-	    header.major != SFDP_JESD216_MAJOR)
++	    header.major != SFDP_JESD216_MAJOR) {
++		dev_warn(dev, "invalid SFDP header signature\n");
+ 		return -EINVAL;
++	}
+ 
+ 	/*
+ 	 * Verify that the first and only mandatory parameter header is a
+@@ -1432,8 +1450,10 @@ int spi_nor_parse_sfdp(struct spi_nor *n
+ 	 */
+ 	bfpt_header = &header.bfpt_header;
+ 	if (SFDP_PARAM_HEADER_ID(bfpt_header) != SFDP_BFPT_ID ||
+-	    bfpt_header->major != SFDP_JESD216_MAJOR)
++	    bfpt_header->major != SFDP_JESD216_MAJOR) {
++		dev_warn(dev, "invalid BFPT header signature\n");
+ 		return -EINVAL;
++	}
+ 
+ 	sfdp_size = SFDP_PARAM_HEADER_PTP(bfpt_header) +
+ 		    SFDP_PARAM_HEADER_PARAM_LEN(bfpt_header);
+@@ -1459,7 +1479,7 @@ int spi_nor_parse_sfdp(struct spi_nor *n
+ 		err = spi_nor_read_sfdp(nor, sizeof(header),
+ 					psize, param_headers);
+ 		if (err < 0) {
+-			dev_dbg(dev, "failed to read SFDP parameter headers\n");
++			dev_warn(dev, "failed to read SFDP parameter headers\n");
+ 			goto exit;
+ 		}
+ 	}
+@@ -1480,7 +1500,7 @@ int spi_nor_parse_sfdp(struct spi_nor *n
+ 	 * much memory just of because the flash returned some insane values.
+ 	 */
+ 	if (sfdp_size > PAGE_SIZE) {
+-		dev_dbg(dev, "SFDP data (%zu) too big, truncating\n",
++		dev_warn(dev, "SFDP data (%zu) too big, truncating\n",
+ 			sfdp_size);
+ 		sfdp_size = PAGE_SIZE;
+ 	}
+@@ -1508,7 +1528,7 @@ int spi_nor_parse_sfdp(struct spi_nor *n
+ 
+ 	err = spi_nor_read_sfdp(nor, 0, sfdp_size, sfdp->dwords);
+ 	if (err < 0) {
+-		dev_dbg(dev, "failed to read SFDP data\n");
++		dev_warn(dev, "failed to read SFDP data\n");
+ 		devm_kfree(dev, sfdp->dwords);
+ 		devm_kfree(dev, sfdp);
+ 		goto exit;
